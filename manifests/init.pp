@@ -26,12 +26,15 @@ class opendj (
   $host            = hiera('opendj::host', $fqdn),
   $tmp             = hiera('opendj::tmpdir', '/tmp'),
   $master          = hiera('opendj::master', undef),
+  $java_properties = hiera('opendj::java_properties', undef),
 ) {
   $common_opts   = "-h ${host} -D '${opendj::admin_user}' -w ${opendj::admin_password}"
   $ldapsearch    = "${opendj::home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
   $ldapmodify    = "${opendj::home}/bin/ldapmodify ${common_opts} -p ${opendj::ldap_port}"
   $dsconfig      = "${opendj::home}/bin/dsconfig   ${common_opts} -p ${opendj::admin_port} -X -n"
   $dsreplication = "${opendj::home}/bin/dsreplication --adminUID admin --adminPassword ${admin_password} -X -n"
+
+  include java
 
   package { "opendj":
     ensure => present,
@@ -135,7 +138,7 @@ class opendj (
 
   if ($master != '' and $host != $master) {
    exec { "enable replication":
-      require => Service['opendj'],
+      require => [Exec["create base dn"], Service['opendj']],
       command => "/bin/su ${user} -s /bin/bash -c \"$dsreplication enable \
         --host1 ${master} --port1 ${admin_port} \
         --replicationPort1 ${repl_port} \
@@ -154,6 +157,23 @@ class opendj (
         -h ${master} -p ${admin_port} -O ${host} --baseDN '${base_dn}'\"",
       require => Exec["enable replication"],
       refreshonly => true,
+    }
+  }
+
+  if ($java_properties != '') {
+    $java_properties.each |$key, $value| {
+      file_line { "java_properties_${key}":
+        path => "${home}/config/java.properties",
+        line => "${key}=${value}",
+        match => "^(${key}=).*$",
+        require => Exec["configure opendj"],
+        notify => Exec["apply java properties"],
+      }
+    }
+
+    exec { "apply java properties":
+      command => "/bin/su ${user} -s /bin/bash -c \"${home}/bin/dsjavaproperties\"",
+      notify => Service['opendj'],
     }
   }
 }

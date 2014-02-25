@@ -7,4 +7,5 @@ summary      'OpenDJ configuration module'
 description  'Module for configuration of ForgeRock OpenDJ'
 project_page 'https://github.com/ConductAS/puppet-opendj'
 
-dependency 'puppetlabs/stdlib', '>= 4.1.0'
+dependency   'puppetlabs/stdlib', '>= 4.1.0'
+dependency   'puppetlabs/java', '>= 1.0.1'
