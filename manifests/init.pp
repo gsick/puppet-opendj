@@ -34,7 +34,7 @@ class opendj (
   $dsconfig      = "${opendj::home}/bin/dsconfig   ${common_opts} -p ${opendj::admin_port} -X -n"
   $dsreplication = "${opendj::home}/bin/dsreplication --adminUID admin --adminPassword ${admin_password} -X -n"
 
-  include java
+  require java
 
   package { "opendj":
     ensure => present,
