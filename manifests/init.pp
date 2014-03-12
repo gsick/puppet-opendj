@@ -163,7 +163,7 @@ class opendj (
     }
   }
 
-  if ($java_properties != '') {
+  if !empty($java_properties) {
     validate_hash($java_properties)
 
     create_resources('opendj::java_property', $java_properties)

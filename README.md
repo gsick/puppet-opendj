@@ -35,7 +35,9 @@ opendj::master: opendj-master.com
 
 # Overwrite values in ${opendj::home}/config/java.properties
 opendj::java_properties:
-    start-ds.java-args: -server -Xms2G -Xmx2G -XX:+UseConcMarkSweepGC -XX:NewSize=512M
-    import-ldif.offline.java-args: -server -Xms1024M -Xmx1024M
+    start-ds.java-args:
+        value: -server -Xms2G -Xmx2G -XX:+UseConcMarkSweepGC -XX:NewSize=512M
+    import-ldif.offline.java-args:
+        value: -server -Xms1024M -Xmx1024M
     ...
 ```
