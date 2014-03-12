@@ -136,6 +136,7 @@ class opendj (
       command => "${home}/bin/ldapmodify -a -D '${admin_user}' \
           -w '${admin_password}' -h ${host} -p ${ldap_port} -f '${tmp}/base_dn.ldif'",
       refreshonly => true,
+      require => Service['opendj'],
     }
   }
 
