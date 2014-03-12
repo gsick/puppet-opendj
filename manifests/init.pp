@@ -68,16 +68,6 @@ class opendj (
     require => File["${home}"],
   }
 
-  file { "${tmp}/base_dn.ldif":
-    ensure => file,
-    content => template("${module_name}/base_dn.ldif.erb"),
-    owner => $user,
-    group => $group,
-    mode => 0600,
-    require => [User["${user}"], Service['opendj']],
-    notify => Exec["create base dn"],
-  }
-
   file_line { 'file_limits_soft':
     path => '/etc/security/limits.conf',
     line => '${user} soft nofile 65536',
@@ -124,21 +114,34 @@ class opendj (
       $dsconfig get-global-configuration-prop | grep 'reject-unauthenticated-requests' | grep true\"",
   }
 
-  exec { "create base dn":
-    command => "${home}/bin/ldapmodify -a -D '${admin_user}' \
-        -w '${admin_password}' -h ${host} -p ${ldap_port} -f '${tmp}/base_dn.ldif'",
-    refreshonly => true,
-  }
-
   exec { "set single structural objectclass behavior":
     command => "${dsconfig} --advanced set-global-configuration-prop --set single-structural-objectclass-behavior:accept",
     unless  => "${dsconfig} --advanced get-global-configuration-prop | grep 'single-structural-objectclass-behavior' | grep accept",
     require => Service['opendj'],
   }
 
+  # Only on master, replicated otherwise
+  if !($master) {
+    file { "${tmp}/base_dn.ldif":
+      ensure => file,
+      content => template("${module_name}/base_dn.ldif.erb"),
+      owner => $user,
+      group => $group,
+      mode => 0600,
+      require => [User["${user}"], Service['opendj']],
+      notify => Exec["create base dn"],
+    }
+
+    exec { "create base dn":
+      command => "${home}/bin/ldapmodify -a -D '${admin_user}' \
+          -w '${admin_password}' -h ${host} -p ${ldap_port} -f '${tmp}/base_dn.ldif'",
+      refreshonly => true,
+    }
+  }
+
   if ($master != '' and $host != $master) {
    exec { "enable replication":
-      require => [Exec["create base dn"], Service['opendj']],
+      require => Service['opendj'],
       command => "/bin/su ${user} -s /bin/bash -c \"$dsreplication enable \
         --host1 ${master} --port1 ${admin_port} \
         --replicationPort1 ${repl_port} \
@@ -161,7 +164,6 @@ class opendj (
   }
 
   if ($java_properties != '') {
-
     validate_hash($java_properties)
 
     create_resources('opendj::java_property', $java_properties)
