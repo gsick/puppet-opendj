@@ -161,15 +161,10 @@ class opendj (
   }
 
   if ($java_properties != '') {
-    $java_properties.each |$key, $value| {
-      file_line { "java_properties_${key}":
-        path => "${home}/config/java.properties",
-        line => "${key}=${value}",
-        match => "^(${key}=).*$",
-        require => Exec["configure opendj"],
-        notify => Exec["apply java properties"],
-      }
-    }
+
+    validate_hash($java_properties)
+
+    create_resources('opendj::java_property', $java_properties)
 
     exec { "apply java properties":
       command => "/bin/su ${user} -s /bin/bash -c \"${home}/bin/dsjavaproperties\"",
